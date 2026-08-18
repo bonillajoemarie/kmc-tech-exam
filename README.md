@@ -123,9 +123,11 @@ Demo accounts (seeded): `admin@example.com` / `password` (Filament `/admin`), `c
 ```bash
 cd frontend
 npm ci
-cp .env.example .env   # VITE_REVERB_* must match backend REVERB_*
+cp .env.example .env
 npm run dev            # http://localhost:5173, proxies /api + /broadcasting → backend
 ```
+
+**Frontend `.env` is required — realtime silently dies without it.** Set `VITE_REVERB_APP_KEY` to exactly the backend's `REVERB_APP_KEY` (the same value already in `backend/.env`). If `frontend/.env` is missing, or the two keys differ, the WebSocket connects with a wrong/empty key and **notifications never arrive — no error anywhere**. In Docker this is handled automatically via the compose build args.
 
 ### Option B — Docker-only (no local toolchain)
 
@@ -170,6 +172,9 @@ npm run build                            # tsc -b && vite build (CI)
 - **Internal comments (`is_internal`) are never broadcast** (`app/Models/TicketComment.php` boot hook).
 - The frontend **skips self-authored events** (`author_id === user.id`) and **dedupes by `comment_id`** (`frontend/src/context/NotificationContext.tsx`).
 - Notifications persist per user in `localStorage` (`supportdesk.notifications.{userId}`, capped at 50).
+- **Only comment creation broadcasts.** Status changes, resolving, and assignment fire **no** event — a notification appears only when a non-internal comment is posted on a ticket you own.
+
+> **No notifications?** Check in order: (1) `frontend/.env` exists with `VITE_REVERB_APP_KEY` == backend `REVERB_APP_KEY`; (2) `BROADCAST_CONNECTION=reverb` in `backend/.env`; (3) Reverb is up (`curl http://localhost:8080/up` → 200); (4) you are the ticket owner and not the comment's author (self-authored comments don't notify).
 
 ## CI (`.github/workflows/ci.yml`)
 
