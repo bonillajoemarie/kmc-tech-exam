@@ -66,9 +66,24 @@ The examiner can run this app with **either** a full local toolchain (Option A) 
 | npm | >= 10 | Ships with Node |
 | MySQL | 8.4 | Local database `kmc_tickets` (dev: `root`, empty password) — **not** SQLite |
 | Redis | >= 7 | With the `phpredis` PHP extension — cache, queue, session, broadcast all use Redis |
-| FrankenPHP | latest | Laravel Octane (`php artisan octane:start --server=frankenphp`). The binary must be on your `PATH` (`which frankenphp` should find it) — Octane looks it up there. It cannot live at `backend/frankenphp/`: that path is a **directory** (the committed Caddyfile), and Octane would try to overwrite it |
+| FrankenPHP | latest | Laravel Octane (`php artisan octane:start --server=frankenphp`). Needs the binary on your `PATH` — see Installing FrankenPHP below. **Not needed at all if you use Option B (Docker)** |
 
 Missing PHP extensions will be reported by `composer check-platform-reqs` inside `backend/`.
+
+### Installing FrankenPHP (Option A only)
+
+Octane needs the `frankenphp` binary on your `PATH`. The binary **cannot** be placed at `backend/frankenphp/` — that path is a **directory** holding the committed Caddyfile, and Octane would try to overwrite it with the downloaded binary. Instead, download the release for *your* OS from https://github.com/php/frankenphp/releases/latest and put it on your `PATH` (e.g. `/usr/local/bin` on Linux/macOS), then verify with `frankenphp version`.
+
+| OS | Asset to download |
+|---|---|
+| Linux x86_64, glibc (Debian/Ubuntu/Fedora) | `frankenphp-linux-x86_64-gnu` |
+| Linux ARM64, glibc | `frankenphp-linux-aarch64-gnu` |
+| Linux x86_64 / ARM64, musl (Alpine) | `frankenphp-linux-x86_64` / `frankenphp-linux-aarch64` (static) |
+| macOS Apple Silicon | `frankenphp-mac-arm64` |
+| macOS Intel | `frankenphp-mac-x86_64` |
+| Windows | Not directly supported by Octane — use **WSL2** (then the Linux asset) or **Option B (Docker)** |
+
+If your OS is not listed here, or you would simply rather install nothing on your machine, use **Option B (Docker)** below — it builds FrankenPHP into the backend container and needs no local binary, PHP, Composer, Node, MySQL, or Redis.
 
 ### Option B — Docker-only (no local toolchain)
 
@@ -89,7 +104,7 @@ php artisan passport:client --personal --name="Support Desk"   # personal access
 php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8000
 ```
 
-`passport:client --personal` is **required** — without it, API login fails with `Personal access client not found for 'users' user provider`. The FrankenPHP binary must be on your `PATH` (see Software requirements) before Octane will start.
+`passport:client --personal` is **required** — without it, API login fails with `Personal access client not found for 'users' user provider`. The FrankenPHP binary must be on your `PATH` before Octane will start — see [Installing FrankenPHP](#installing-frankenphp-option-a-only).
 
 Locally, **Octane and Reverb are two separate processes.** After Octane is running, start Reverb in a second terminal:
 
