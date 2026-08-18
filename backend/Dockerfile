@@ -20,6 +20,7 @@ RUN apk add --no-cache \
         libpng \
         libjpeg-turbo \
         zlib \
+        libzip \
     && apk add --no-cache --virtual .build-deps \
         $PHPIZE_DEPS \
         icu-dev \
@@ -27,6 +28,8 @@ RUN apk add --no-cache \
         libjpeg-turbo-dev \
         freetype-dev \
         zlib-dev \
+        linux-headers \
+        libzip-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" \
         pdo_mysql \
@@ -35,6 +38,7 @@ RUN apk add --no-cache \
         intl \
         pcntl \
         sockets \
+        zip \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && apk del .build-deps

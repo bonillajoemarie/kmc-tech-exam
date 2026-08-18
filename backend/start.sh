@@ -7,14 +7,15 @@ echo "==> Ensuring storage directories exist..."
 mkdir -p storage/logs \
     storage/framework/cache/data \
     storage/framework/sessions \
-    storage/framework/views
+    storage/framework/views \
+    /var/log/supervisor
 
 # The committed public/storage symlink points at an absolute path from this
 # machine; point it at the container's storage tree instead.
 ln -sfn /app/storage/app/public /app/public/storage
 
 echo "==> Waiting for MySQL..."
-until mysqladmin ping -h "${DB_HOST:-mysql}" -P "${DB_PORT:-3306}" -u "${DB_USERNAME:-root}" -p"${DB_PASSWORD:-}" --silent 2>/dev/null; do
+until mysqladmin ping --skip-ssl -h "${DB_HOST:-mysql}" -P "${DB_PORT:-3306}" -u "${DB_USERNAME:-root}" -p"${DB_PASSWORD:-}" --silent 2>/dev/null; do
     echo "    MySQL not ready - retrying in 2s..."
     sleep 2
 done
@@ -51,5 +52,5 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-echo "==> Starting supervisord (Octane :8000 + Reverb :8080)..."
+echo "==> Starting supervisord (Octane :8000 + Reverb :8080 + queue worker)..."
 exec supervisord -c supervisord.conf -n

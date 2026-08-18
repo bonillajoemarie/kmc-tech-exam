@@ -7,6 +7,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "fakerphp/faker": "^1.24",
         "filament/filament": "*",
         "laravel/framework": "^13.17",
         "laravel/octane": "^2.19",
@@ -16,7 +17,6 @@
         "spatie/laravel-permission": "*"
     },
     "require-dev": {
-        "fakerphp/faker": "*",
         "laravel/boost": "^2.5",
         "laravel/pail": "^1.2.5",
         "laravel/pao": "^1.0.6",

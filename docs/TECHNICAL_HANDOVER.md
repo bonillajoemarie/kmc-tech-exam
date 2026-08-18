@@ -18,7 +18,7 @@ Operational notes for whoever runs this app next. For architecture, features, qu
 |---|---|---|
 | `APP_NAME` | `Laravel` | Display name |
 | `APP_ENV` / `APP_DEBUG` / `APP_KEY` | `local` / `true` / empty | `key:generate` fills key |
-| `APP_URL` | `http://localhost:8000` | Octane entry point |
+| `APP_URL` | `http://localhost:8000` | Octane entry point; **docker-compose overrides it to `http://localhost:5173`** (the app is served through the frontend container) |
 | `DB_CONNECTION` | `mysql` | **MySQL is the only supported DB** (plan Revision 1; SQLite was retired) |
 | `DB_HOST` / `DB_PORT` | `127.0.0.1` / `3306` | |
 | `DB_DATABASE` / `DB_USERNAME` / `DB_PASSWORD` | `kmc_tickets` / `root` / empty | CI overrides with `root`/`secret` |

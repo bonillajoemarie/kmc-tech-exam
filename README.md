@@ -189,7 +189,7 @@ npm run build                            # tsc -b && vite build (CI)
 Containerized deployment is implemented at the repo root.
 
 - **`backend` container** — `php:8.5-fpm-alpine` with the static (musl) FrankenPHP binary. `backend/supervisord.conf` runs **three** processes in the same container: **Octane** (HTTP :8000), **Reverb** (websocket :8080), and the **queue worker** (`queue:work redis`, which drains the queued `TicketCommentCreated` broadcasts); `backend/start.sh` waits for MySQL, generates the app key + Passport keys, runs `migrate --force`, **seeds on first boot** (demo users + lookups + sample tickets), caches config/routes/views, then boots supervisord.
-- **`frontend` container** — multi-stage `node:22-alpine`: `npm ci` → `npm run build` (with `VITE_REVERB_*` build args), then `pm2` serves the built SPA on :5173 via `frontend/server.mjs`, which reverse-proxies `/api` and `/broadcasting` (the Laravel auth route) to the backend on :8000. The websocket connects directly to `ws://:8080`.
+- **`frontend` container** — multi-stage `node:22-alpine`: `npm ci` → `npm run build` (with `VITE_REVERB_*` build args), then `pm2` serves the built SPA on :5173 via `frontend/server.mjs`, which reverse-proxies `/api` and `/broadcasting` (the Laravel auth route) to the backend on :8000. The websocket connects directly to `ws://:8080`. **pm2 is installed inside the image** (`npm i -g pm2` in the Dockerfile) — nothing is installed on the host, and the image runs it via `pm2-runtime` (`CMD ["pm2-runtime", "start", "ecosystem.config.cjs"]`).
 - **MySQL 8.4 + Redis 7** are provided behind the compose `services` profile.
 
 Start the full stack:
