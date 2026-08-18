@@ -66,7 +66,7 @@ The examiner can run this app with **either** a full local toolchain (Option A) 
 | npm | >= 10 | Ships with Node |
 | MySQL | 8.4 | Local database `kmc_tickets` (dev: `root`, empty password) — **not** SQLite |
 | Redis | >= 7 | With the `phpredis` PHP extension — cache, queue, session, broadcast all use Redis |
-| FrankenPHP | latest | Laravel Octane (`php artisan octane:start --server=frankenphp`) — install per OS from https://frankenphp.dev/ |
+| FrankenPHP | latest | Laravel Octane (`php artisan octane:start --server=frankenphp`). The binary must be on your `PATH` (`which frankenphp` should find it) — Octane looks it up there. It cannot live at `backend/frankenphp/`: that path is a **directory** (the committed Caddyfile), and Octane would try to overwrite it |
 
 Missing PHP extensions will be reported by `composer check-platform-reqs` inside `backend/`.
 
@@ -85,8 +85,11 @@ cp .env.example .env
 php artisan key:generate
 php artisan migrate:fresh --seed          # creates kmc_tickets tables + lookups + demo users
 php artisan passport:keys --force         # JWT keys for Passport
+php artisan passport:client --personal --name="Support Desk"   # personal access client (required)
 php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8000
 ```
+
+`passport:client --personal` is **required** — without it, API login fails with `Personal access client not found for 'users' user provider`. The FrankenPHP binary must be on your `PATH` (see Software requirements) before Octane will start.
 
 Locally, **Octane and Reverb are two separate processes.** After Octane is running, start Reverb in a second terminal:
 

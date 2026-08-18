@@ -39,6 +39,13 @@ fi
 echo "==> Generating Passport OAuth keys..."
 php artisan passport:keys --force
 
+# Personal access client is required for the API login/token endpoints.
+# Passport >= 12 stores the grant in a `grant_types` JSON column.
+if [ "$(php artisan tinker --execute 'echo \Laravel\Passport\Client::whereJsonContains("grant_types", "personal_access")->exists() ? "1" : "0";')" = "0" ]; then
+    echo "==> Creating Passport personal access client..."
+    php artisan passport:client --personal --name="Support Desk" --no-interaction
+fi
+
 echo "==> Caching configuration, routes, and views..."
 php artisan config:cache
 php artisan route:cache
