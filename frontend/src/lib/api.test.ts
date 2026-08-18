@@ -67,13 +67,13 @@ describe('api', () => {
     )
   })
 
-  it('does not send an Authorization header without a token', async () => {
+  it('sends an Accept header and no Authorization header without a token', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, { data: [] }))
 
     await api('/tickets')
 
     const [, options] = fetchMock.mock.calls[0] as [string, RequestInit]
-    expect(options.headers).toBeUndefined()
+    expect(options.headers).toEqual({ Accept: 'application/json' })
   })
 
   it('parses the JSON response body', async () => {
@@ -173,7 +173,7 @@ describe('api', () => {
     const [, options] = fetchMock.mock.calls[0] as [string, RequestInit]
     expect(options.method).toBe('POST')
     expect(options.body).toBe(instances[0])
-    expect(options.headers).toBeUndefined()
+    expect(options.headers).toEqual({ Accept: 'application/json' })
   })
 
   it('addComment appends multiple files to attachments[]', async () => {

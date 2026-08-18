@@ -14,7 +14,8 @@ export class ApiError extends Error {
   }
 }
 
-let authToken: string | null = null
+let authToken: string | null =
+  typeof localStorage !== 'undefined' ? localStorage.getItem('supportdesk.token') : null
 let unauthorizedHandler: (() => void) | null = null
 
 export function setAuthToken(token: string | null): void {
@@ -32,7 +33,7 @@ interface ApiOptions {
 }
 
 export async function api<T>(path: string, options: ApiOptions = {}): Promise<T> {
-  const headers: Record<string, string> = {}
+  const headers: Record<string, string> = { Accept: 'application/json' }
   if (authToken) headers.Authorization = `Bearer ${authToken}`
 
   let body: BodyInit | undefined

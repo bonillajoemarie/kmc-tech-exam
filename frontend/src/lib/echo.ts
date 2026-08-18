@@ -1,4 +1,5 @@
 import Echo from 'laravel-echo'
+import Pusher from 'pusher-js'
 import type { Channel } from 'laravel-echo'
 
 const TOKEN_KEY = 'supportdesk.token'
@@ -30,7 +31,9 @@ function getEcho(): Echo<'pusher'> | null {
   const port = Number(import.meta.env.VITE_REVERB_PORT ?? 8080)
   echo = new Echo<'pusher'>({
     broadcaster: 'pusher',
+    Pusher,
     key,
+    cluster: 'mt1',
     wsHost: host,
     wsPort: port,
     forceTLS: scheme === 'https',
@@ -46,7 +49,7 @@ function getEcho(): Echo<'pusher'> | null {
  * Multiple handlers may share one channel; returns an unsubscribe function.
  */
 export function subscribeToComments(userId: number, handler: (event: CommentEvent) => void): () => void {
-  const channelName = `private-user.${userId}`
+  const channelName = `user.${userId}`
   const token = localStorage.getItem(TOKEN_KEY)
   if (token) authHeaders.Authorization = `Bearer ${token}`
 

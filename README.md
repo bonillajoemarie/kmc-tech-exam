@@ -108,11 +108,14 @@ php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8000
 
 `passport:client --personal` is **required** — without it, API login fails with `Personal access client not found for 'users' user provider`. The FrankenPHP binary must be on your `PATH` before Octane will start — see [Installing FrankenPHP](#installing-frankenphp-option-a-only).
 
-Locally, **Octane and Reverb are two separate processes.** After Octane is running, start Reverb in a second terminal:
+Locally, **Octane, Reverb and the queue worker are three separate processes.** After Octane is running, start Reverb in a second terminal and the queue worker in a third:
 
 ```bash
 php artisan reverb:start --host=0.0.0.0 --port=8080
+php artisan queue:work redis --sleep=1 --tries=3
 ```
+
+The queue worker is **required for realtime** — `TicketCommentCreated` is a queued broadcast (`QUEUE_CONNECTION=redis`), so without it the events sit in Redis and notifications never arrive.
 
 (In Docker they are co-located in a single container — see [Docker deployment](#docker-deployment).) Set `BROADCAST_CONNECTION=reverb` (as in `.env.example`) and start the frontend so the `/broadcasting` auth proxy works.
 
@@ -174,7 +177,7 @@ npm run build                            # tsc -b && vite build (CI)
 - Notifications persist per user in `localStorage` (`supportdesk.notifications.{userId}`, capped at 50).
 - **Only comment creation broadcasts.** Status changes, resolving, and assignment fire **no** event — a notification appears only when a non-internal comment is posted on a ticket you own.
 
-> **No notifications?** Check in order: (1) `frontend/.env` exists with `VITE_REVERB_APP_KEY` == backend `REVERB_APP_KEY`; (2) `BROADCAST_CONNECTION=reverb` in `backend/.env`; (3) Reverb is up (`curl http://localhost:8080/up` → 200); (4) you are the ticket owner and not the comment's author (self-authored comments don't notify).
+> **No notifications?** Check in order: (1) `frontend/.env` exists with `VITE_REVERB_APP_KEY` == backend `REVERB_APP_KEY`; (2) `BROADCAST_CONNECTION=reverb` in `backend/.env`; (3) a **queue worker is running** (`php artisan queue:work redis` — broadcasts are queued, see [Backend](#backend)); (4) Reverb is up (`curl http://localhost:8080/up` → 200); (5) you are the ticket owner and not the comment's author (self-authored comments don't notify).
 
 ## CI (`.github/workflows/ci.yml`)
 
@@ -185,7 +188,7 @@ npm run build                            # tsc -b && vite build (CI)
 
 Containerized deployment is implemented at the repo root.
 
-- **`backend` container** — `php:8.5-fpm-alpine` with the static (musl) FrankenPHP binary. `backend/supervisord.conf` runs **both** Octane (HTTP :8000) and **Reverb (websocket :8080) in the same container**; `backend/start.sh` waits for MySQL, generates the app key + Passport keys, runs `migrate --force`, **seeds on first boot** (demo users + lookups + sample tickets), caches config/routes/views, then boots supervisord.
+- **`backend` container** — `php:8.5-fpm-alpine` with the static (musl) FrankenPHP binary. `backend/supervisord.conf` runs **three** processes in the same container: **Octane** (HTTP :8000), **Reverb** (websocket :8080), and the **queue worker** (`queue:work redis`, which drains the queued `TicketCommentCreated` broadcasts); `backend/start.sh` waits for MySQL, generates the app key + Passport keys, runs `migrate --force`, **seeds on first boot** (demo users + lookups + sample tickets), caches config/routes/views, then boots supervisord.
 - **`frontend` container** — multi-stage `node:22-alpine`: `npm ci` → `npm run build` (with `VITE_REVERB_*` build args), then `pm2` serves the built SPA on :5173 via `frontend/server.mjs`, which reverse-proxies `/api` and `/broadcasting` (the Laravel auth route) to the backend on :8000. The websocket connects directly to `ws://:8080`.
 - **MySQL 8.4 + Redis 7** are provided behind the compose `services` profile.
 

@@ -98,6 +98,7 @@ describe('echo', () => {
     expect(echoInstances[0].config).toMatchObject({
       broadcaster: 'pusher',
       key: 'key-123',
+      cluster: 'mt1',
       wsHost: 'localhost',
       wsPort: 8080,
       forceTLS: false,
@@ -108,7 +109,7 @@ describe('echo', () => {
       headers: expect.objectContaining({ Authorization: 'Bearer tok-xyz' }),
     })
 
-    expect(echoInstances[0].channels['private-user.7']).toBeDefined()
+    expect(echoInstances[0].channels['user.7']).toBeDefined()
   })
 
   it('reads the token from localStorage at listen time', async () => {
@@ -156,7 +157,7 @@ describe('echo', () => {
     subscribeToComments(7, first)
     subscribeToComments(7, second)
 
-    const channel = echoInstances[0].channels['private-user.7']
+    const channel = echoInstances[0].channels['user.7']
     expect(channel.listen).toHaveBeenCalledTimes(1)
     expect(channel.listen).toHaveBeenCalledWith('TicketCommentCreated', expect.any(Function))
   })
@@ -175,7 +176,7 @@ describe('echo', () => {
     subscribeToComments(7, first)
     const unsubscribeSecond = subscribeToComments(7, second)
 
-    const channel = echoInstances[0].channels['private-user.7']
+    const channel = echoInstances[0].channels['user.7']
     const listenCallback = channel.listen.mock.calls[0][1]
     const event = {
       comment_id: 1,
@@ -206,7 +207,7 @@ describe('echo', () => {
     const unsubscribe = subscribeToComments(7, vi.fn())
     unsubscribe()
 
-    const channel = echoInstances[0].channels['private-user.7']
+    const channel = echoInstances[0].channels['user.7']
     expect(channel.stopListening).toHaveBeenCalledWith('TicketCommentCreated')
 
     subscribeToComments(7, vi.fn())
