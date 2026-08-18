@@ -8,10 +8,13 @@ use App\Http\Requests\Api\StoreTicketRequest;
 use App\Http\Resources\TicketCommentResource;
 use App\Http\Resources\TicketResource;
 use App\Models\Ticket;
+use App\Models\TicketComment;
 use App\Models\TicketStatus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
 
 class TicketController extends Controller
 {
@@ -76,8 +79,34 @@ class TicketController extends Controller
             'user_id' => $request->user()->id,
             'content' => $request->validated('content'),
             'is_internal' => false,
+            'attachments' => $this->storeAttachments($request),
         ]);
 
         return (new TicketCommentResource($comment->load('user:id,name')))->response()->setStatusCode(201);
+    }
+
+    /**
+     * Persist uploaded attachments to the public disk and return their metadata.
+     *
+     * @return array<int, array{name: string, path: string, size: int}>|null
+     */
+    private function storeAttachments(Request $request): ?array
+    {
+        $files = $request->file('attachments', []);
+
+        if ($files === []) {
+            return null;
+        }
+
+        return collect($files)->map(function (UploadedFile $file): array {
+            $extension = $file->getExtension() ?: $file->getClientOriginalExtension();
+            $path = $file->storeAs('attachments', Str::uuid().'.'.$extension, 'public');
+
+            return [
+                'name' => TicketComment::sanitizeFilename($file->getClientOriginalName()),
+                'path' => $path,
+                'size' => $file->getSize(),
+            ];
+        })->values()->all();
     }
 }

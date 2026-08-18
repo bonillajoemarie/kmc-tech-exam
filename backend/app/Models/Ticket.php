@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -39,9 +40,9 @@ class Ticket extends Model
     {
         static::creating(function (Ticket $ticket) {
             if (empty($ticket->ticket_number)) {
-                $ticket->ticket_number = 'TK-' . strtoupper(
+                $ticket->ticket_number = 'TK-'.strtoupper(
                     substr(str_shuffle('ABCDEFGHJKLMNPQRSTUVWXYZ'), 0, 6)
-                ) . '-' . now()->format('ymd');
+                ).'-'.now()->format('ymd');
             }
         });
     }
@@ -76,9 +77,14 @@ class Ticket extends Model
         return $this->hasMany(TicketComment::class)->orderBy('created_at');
     }
 
-    public function scopeForUser($query, int $userId)
+    public function scopeForUser(Builder $query, int $userId): Builder
     {
         return $query->where('user_id', $userId);
+    }
+
+    public function scopeOpen(Builder $query): Builder
+    {
+        return $query->whereHas('status', fn (Builder $status) => $status->where('is_closed', false));
     }
 
     public function isClosed(): bool

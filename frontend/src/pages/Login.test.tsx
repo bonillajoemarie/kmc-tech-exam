@@ -74,7 +74,7 @@ describe('Login', () => {
 
     expect(await screen.findByText('My Tickets page')).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/auth/login',
+      '/api/v1/auth/login',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ email: 'customer@example.com', password: 'password123' }),

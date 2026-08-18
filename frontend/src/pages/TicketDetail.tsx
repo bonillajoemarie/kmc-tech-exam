@@ -1,12 +1,17 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { ApiError } from '../lib/api'
+import { addComment } from '../lib/api'
+import { subscribeToComments } from '../lib/echo'
+import { useAuth } from '../context/useAuth'
 import { formatRelativeTime } from '../lib/time'
 import { Badge } from '../components/Badge'
 import { PriorityBadge, StatusBadge } from '../components/StatusBadge'
 import type { Comment, TicketDetail } from '../types'
+
+const ACCEPTED_FILES = 'image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip'
 
 function initials(name: string): string {
   return name
@@ -17,6 +22,14 @@ function initials(name: string): string {
     .join('')
 }
 
+function formatBytes(bytes: number): string {
+  if (!bytes || bytes <= 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB']
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1)
+  const value = bytes / 1024 ** i
+  return `${value >= 10 || i === 0 ? Math.round(value) : value.toFixed(1)} ${units[i]}`
+}
+
 function CommentAvatar({ name }: { name: string }) {
   return (
     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700">
@@ -25,12 +38,41 @@ function CommentAvatar({ name }: { name: string }) {
   )
 }
 
+function CommentAttachments({ comment }: { comment: Comment }) {
+  const attachments = comment.attachments ?? []
+  if (attachments.length === 0) return null
+  return (
+    <ul className="mt-2 flex flex-wrap gap-2">
+      {attachments.map((a) => (
+        <li key={a.url}>
+          <a
+            href={a.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-indigo-600 transition hover:border-indigo-300 hover:bg-indigo-50"
+            title={a.name}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5 shrink-0">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+            </svg>
+            <span className="truncate">{a.name}</span>
+            <span className="shrink-0 text-slate-400">{formatBytes(a.size)}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export function TicketDetail() {
   const { id } = useParams<{ id: string }>()
+  const { user } = useAuth()
   const [ticket, setTicket] = useState<TicketDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [content, setContent] = useState('')
+  const [attachments, setAttachments] = useState<File[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [commentErrors, setCommentErrors] = useState<Record<string, string[]>>({})
   const [commentError, setCommentError] = useState<string | null>(null)
   const [posting, setPosting] = useState(false)
@@ -49,22 +91,29 @@ export function TicketDetail() {
   }, [id])
 
   useEffect(() => {
-    loadTicket()
+    const timer = setTimeout(loadTicket, 0)
+    return () => clearTimeout(timer)
   }, [loadTicket])
+
+  useEffect(() => {
+    if (!user) return
+    return subscribeToComments(user.id, loadTicket)
+  }, [user, loadTicket])
 
   async function handleComment(e: FormEvent) {
     e.preventDefault()
-    if (!content.trim() || !ticket) return
+    if (!ticket) return
+    const trimmed = content.trim()
+    if (!trimmed && attachments.length === 0) return
     setPosting(true)
     setCommentErrors({})
     setCommentError(null)
     try {
-      const comment = await api<Comment>(`/tickets/${ticket.id}/comments`, {
-        method: 'POST',
-        body: { content: content.trim() },
-      })
+      const comment = await addComment(ticket.id, trimmed, attachments)
       setTicket({ ...ticket, comments: [...ticket.comments, comment], comments_count: ticket.comments_count + 1 })
       setContent('')
+      setAttachments([])
+      if (fileInputRef.current) fileInputRef.current.value = ''
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.errors && Object.keys(err.errors).length > 0) {
@@ -78,6 +127,10 @@ export function TicketDetail() {
     } finally {
       setPosting(false)
     }
+  }
+
+  function removeAttachment(index: number) {
+    setAttachments((prev) => prev.filter((_, i) => i !== index))
   }
 
   if (loading) {
@@ -152,6 +205,7 @@ export function TicketDetail() {
                     <span className="text-xs text-slate-400">{formatRelativeTime(comment.created_at)}</span>
                   </div>
                   <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{comment.content}</p>
+                  <CommentAttachments comment={comment} />
                 </div>
               </li>
             ))}
@@ -180,10 +234,62 @@ export function TicketDetail() {
           {commentError && (
             <p className="mt-1 text-xs text-red-600">{commentError}</p>
           )}
+
+          <div className="mt-3">
+            <input
+              ref={fileInputRef}
+              id="attachments"
+              type="file"
+              multiple
+              accept={ACCEPTED_FILES}
+              onChange={(e) => setAttachments(Array.from(e.target.files ?? []))}
+              className="sr-only"
+              disabled={posting}
+            />
+            {attachments.length > 0 ? (
+              <ul className="mb-2 flex flex-wrap gap-2">
+                {attachments.map((file, index) => (
+                  <li key={`${file.name}-${index}`}>
+                    <span className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700">
+                      <span className="max-w-48 truncate">{file.name}</span>
+                      <span className="text-indigo-400">{formatBytes(file.size)}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(index)}
+                        disabled={posting}
+                        aria-label={`Remove ${file.name}`}
+                        className="ml-0.5 rounded text-indigo-400 transition hover:text-red-500"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <label
+              htmlFor="attachments"
+              className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 ${
+                posting ? 'cursor-not-allowed opacity-50' : ''
+              }`}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
+              </svg>
+              Attach files
+            </label>
+            <p className="mt-1.5 text-xs text-slate-400">Images, PDFs, Office documents, text, CSV or ZIP — up to several files.</p>
+            {commentErrors.attachments && (
+              <p className="mt-1 text-xs text-red-600">{commentErrors.attachments[0]}</p>
+            )}
+          </div>
+
           <div className="mt-3 flex justify-end">
             <button
               type="submit"
-              disabled={posting || !content.trim()}
+              disabled={posting || (!content.trim() && attachments.length === 0)}
               className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {posting ? 'Posting…' : 'Post comment'}

@@ -1,0 +1,109 @@
+name: kmc-tech-exam
+
+# Shared backend environment. Values that look like secrets have overridable
+# local defaults (fine for this exam) -- override via a .env file next to this
+# compose file, e.g. `REVERB_APP_KEY=... docker compose up --profile services -d`.
+x-backend-env: &backend-env
+  APP_NAME: "Support Desk"
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_URL: http://localhost:5173
+  APP_KEY: ${APP_KEY:-base64:wjc1CrdkqFhuIRG8F/s+SnxXRSzSkph0EivRLwBSV34=}
+  LOG_CHANNEL: stderr
+
+  DB_CONNECTION: mysql
+  DB_HOST: mysql
+  DB_PORT: "3306"
+  DB_DATABASE: ${MYSQL_DATABASE:-kmc_tickets}
+  DB_USERNAME: root
+  DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-kmc_dev_secret}
+
+  SESSION_DRIVER: redis
+  SESSION_LIFETIME: "120"
+  CACHE_STORE: redis
+  QUEUE_CONNECTION: redis
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  REDIS_PASSWORD: "null"
+
+  BROADCAST_CONNECTION: reverb
+  REVERB_APP_ID: ${REVERB_APP_ID:-619643}
+  REVERB_APP_KEY: ${REVERB_APP_KEY:-xmwujlvy2efjb965haih}
+  REVERB_APP_SECRET: ${REVERB_APP_SECRET:-jiox6w9pacbbl2i9vzo5}
+  REVERB_HOST: localhost
+  REVERB_PORT: "8080"
+  REVERB_SCHEME: http
+
+  OCTANE_SERVER: frankenphp
+
+services:
+  backend:
+    build:
+      context: ./backend
+    image: kmc-tech-exam-backend
+    restart: unless-stopped
+    environment: *backend-env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      # HTTP (Octane) and WebSocket (Reverb). 8080 is published to the host so
+      # the browser can reach Reverb directly (the frontend build bakes in
+      # ws://localhost:8080).
+      - "8000:8000"
+      - "8080:8080"
+    volumes:
+      - backend_storage:/app/storage
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_REVERB_APP_KEY: ${REVERB_APP_KEY:-xmwujlvy2efjb965haih}
+        VITE_REVERB_HOST: ${VITE_REVERB_HOST:-localhost}
+        VITE_REVERB_PORT: ${VITE_REVERB_PORT:-8080}
+        VITE_REVERB_SCHEME: ${VITE_REVERB_SCHEME:-http}
+    image: kmc-tech-exam-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+
+  mysql:
+    image: mysql:8.4
+    profiles: ["services"]
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-kmc_tickets}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-kmc_dev_secret}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    ports:
+      - "3306:3306"
+
+  redis:
+    image: redis:7-alpine
+    profiles: ["services"]
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  backend_storage:
+  mysql_data:
+  redis_data:

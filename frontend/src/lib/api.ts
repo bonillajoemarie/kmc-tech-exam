@@ -1,3 +1,5 @@
+import type { Comment } from '../types'
+
 type ErrorBody = { message?: string; errors?: Record<string, string[]> }
 
 export class ApiError extends Error {
@@ -26,21 +28,24 @@ export function setUnauthorizedHandler(handler: (() => void) | null): void {
 interface ApiOptions {
   method?: string
   body?: unknown
+  formData?: FormData
 }
 
 export async function api<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const headers: Record<string, string> = {}
   if (authToken) headers.Authorization = `Bearer ${authToken}`
 
-  let body: string | undefined
-  if (options.body !== undefined) {
+  let body: BodyInit | undefined
+  if (options.formData !== undefined) {
+    body = options.formData
+  } else if (options.body !== undefined) {
     headers['Content-Type'] = 'application/json'
     body = JSON.stringify(options.body)
   }
 
   let response: Response
   try {
-    response = await fetch(`/api${path}`, {
+    response = await fetch(`/api/v1${path}`, {
       method: options.method ?? 'GET',
       headers: Object.keys(headers).length > 0 ? headers : undefined,
       body,
@@ -61,4 +66,17 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
   }
 
   return payload as T
+}
+
+export function addComment(ticketId: number | string, content: string, attachments: File[] = []): Promise<Comment> {
+  if (attachments.length === 0) {
+    return api<Comment>(`/tickets/${ticketId}/comments`, { method: 'POST', body: { content } })
+  }
+
+  const formData = new FormData()
+  formData.append('content', content)
+  for (const file of attachments) {
+    formData.append('attachments[]', file, file.name)
+  }
+  return api<Comment>(`/tickets/${ticketId}/comments`, { method: 'POST', formData })
 }

@@ -1,0 +1,46 @@
+# FrankenPHP / Caddy configuration for Laravel Octane.
+# Static copy of Laravel\Octane's default stub Caddyfile, resolved to the
+# container layout. Referenced by supervisord's octane program via
+# `--caddyfile=/app/frankenphp/Caddyfile`.
+
+{
+	auto_https disable_redirects
+
+	admin localhost:2019
+
+	frankenphp {
+		worker {
+			file "/app/public/frankenphp-worker.php"
+		}
+	}
+}
+
+http://:8000 {
+	log {
+		level INFO
+
+		# Redact the authorization query parameter that can be set by Mercure...
+		format filter {
+			wrap json
+			fields {
+				uri query {
+					replace authorization REDACTED
+				}
+			}
+		}
+	}
+
+	route {
+		root * /app/public
+		encode zstd br gzip
+
+		# Mercure configuration would be injected here if enabled in octane.php.
+
+		php_server {
+			index frankenphp-worker.php
+			try_files {path} frankenphp-worker.php
+			# Required for the public/storage/ directory...
+			resolve_root_symlink
+		}
+	}
+}

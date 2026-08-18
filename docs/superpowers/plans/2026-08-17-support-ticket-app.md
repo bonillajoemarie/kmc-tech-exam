@@ -21,21 +21,21 @@
 
 ## API Contract (agreed upfront — backend and frontend agents build against this)
 
-Base URL: `/api`. All endpoints return JSON. Auth: `Authorization: Bearer <token>`.
+Base URL: `/api/v1`. All endpoints return JSON. Auth: `Authorization: Bearer <token>`.
 
 | Method | Endpoint | Auth | Purpose |
 |---|---|---|---|
-| POST | `/api/auth/register` | public | `{name, email, password, password_confirmation}` → `{user, token}` |
-| POST | `/api/auth/login` | public | `{email, password}` → `{user, token}` |
-| POST | `/api/auth/logout` | Bearer | revokes current token |
-| GET | `/api/user` | Bearer | current user + roles |
-| GET | `/api/tickets` | Bearer | own tickets; filters `?status=&priority=&category=&search=&sort=created_at|updated_at&order=asc|desc&per_page=` |
-| POST | `/api/tickets` | Bearer | `{subject, description, category_id?, priority_id?}` → ticket |
-| GET | `/api/tickets/{ticket}` | Bearer | own ticket + comments + relations |
-| POST | `/api/tickets/{ticket}/comments` | Bearer | `{content}` (is_internal forced false for customers) → comment |
-| GET | `/api/meta/categories` | Bearer | active categories |
-| GET | `/api/meta/priorities` | Bearer | active priorities |
-| GET | `/api/meta/statuses` | Bearer | active statuses (read-only for customers) |
+| POST | `/api/v1/auth/register` | public | `{name, email, password, password_confirmation}` → `{user, token}` |
+| POST | `/api/v1/auth/login` | public | `{email, password}` → `{user, token}` |
+| POST | `/api/v1/auth/logout` | Bearer | revokes current token |
+| GET | `/api/v1/user` | Bearer | current user + roles |
+| GET | `/api/v1/tickets` | Bearer | own tickets; filters `?status=&priority=&category=&search=&sort=created_at|updated_at&order=asc|desc&per_page=` |
+| POST | `/api/v1/tickets` | Bearer | `{subject, description, category_id?, priority_id?}` → ticket |
+| GET | `/api/v1/tickets/{ticket}` | Bearer | own ticket + comments + relations |
+| POST | `/api/v1/tickets/{ticket}/comments` | Bearer | `{content}` (is_internal forced false for customers) → comment |
+| GET | `/api/v1/meta/categories` | Bearer | active categories |
+| GET | `/api/v1/meta/priorities` | Bearer | active priorities |
+| GET | `/api/v1/meta/statuses` | Bearer | active statuses (read-only for customers) |
 
 Resource shapes:
 - `ticket`: `{id, ticket_number, subject, description, status: {id,name,slug,color,is_closed}, priority: {id,name,slug,color,level}, category: {id,name,slug,color}, created_at, updated_at, comments_count}`

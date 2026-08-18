@@ -1,0 +1,14 @@
+# Root-level ignores only. backend/.gitignore and frontend/.gitignore
+# already cover vendor/, node_modules/, dist/, editor dirs, and .env inside
+# those trees. This file is a safety net for anything at the repo root.
+
+# Environment safety net (frontend/.gitignore does not cover .env)
+.env
+
+# Logs
+*.log
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useMeta } from '../lib/useMeta'
+import { subscribeToComments } from '../lib/echo'
+import { useAuth } from '../context/useAuth'
 import { formatRelativeTime } from '../lib/time'
 import { Badge } from '../components/Badge'
 import { PriorityBadge, StatusBadge } from '../components/StatusBadge'
@@ -32,6 +34,7 @@ function ticketSort(filters: Filters): { sort: string; order: string } {
 }
 
 export function Tickets() {
+  const { user } = useAuth()
   const { meta } = useMeta()
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [page, setPage] = useState(1)
@@ -77,12 +80,17 @@ export function Tickets() {
   useEffect(() => {
     const search = filters.search.trim()
     if (!search) {
-      loadTickets()
-      return
+      const timer = setTimeout(loadTickets, 0)
+      return () => clearTimeout(timer)
     }
     const timer = setTimeout(loadTickets, 350)
     return () => clearTimeout(timer)
   }, [loadTickets, filters.search])
+
+  useEffect(() => {
+    if (!user) return
+    return subscribeToComments(user.id, loadTickets)
+  }, [user, loadTickets])
 
   const filterCount = Object.values(filters).filter((v) => v !== '' && v !== 'newest').length
 

@@ -12,6 +12,7 @@ class TicketCommentResource extends JsonResource
         return [
             'id' => $this->id,
             'content' => $this->content,
+            'attachments' => $this->attachmentUrls(),
             'user' => $this->user ? [
                 'id' => $this->user->id,
                 'name' => $this->user->name,

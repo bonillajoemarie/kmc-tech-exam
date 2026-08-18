@@ -22,11 +22,18 @@ export interface Priority extends MetaRecord {
 
 export type Category = MetaRecord
 
+export interface CommentAttachment {
+  name: string
+  url: string
+  size: number
+}
+
 export interface Comment {
   id: number
   content: string
   user: { id: number; name: string }
   created_at: string
+  attachments: CommentAttachment[]
 }
 
 export interface Ticket {

@@ -10,7 +10,7 @@ class StatsOverview extends StatsOverviewWidget
 {
     protected function getStats(): array
     {
-        $openQuery = fn () => Ticket::query()->whereHas('status', fn ($query) => $query->where('is_closed', false));
+        $openQuery = fn () => Ticket::query()->open();
 
         return [
             Stat::make('Open tickets', $openQuery()->count())

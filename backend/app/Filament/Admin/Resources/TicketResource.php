@@ -54,14 +54,23 @@ class TicketResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return (string) Ticket::query()
-            ->whereHas('status', fn ($query) => $query->where('is_closed', false))
-            ->count();
+        return (string) Ticket::query()->open()->count();
     }
 
     public static function getNavigationBadgeColor(): ?string
     {
         return 'warning';
+    }
+
+    /**
+     * @return array<int, string> of admin user names keyed by user id.
+     */
+    public static function adminUserOptions(): array
+    {
+        return User::query()
+            ->whereHas('roles', fn ($query) => $query->where('name', 'admin'))
+            ->pluck('name', 'id')
+            ->all();
     }
 
     public static function form(Schema $schema): Schema
@@ -96,14 +105,14 @@ class TicketResource extends Resource
                             ->relationship('priority', 'name')
                             ->searchable()
                             ->preload()
-                            ->default(fn (): ?int => TicketPriority::query()->where('is_active', true)->orderBy('level')->value('id')),
+                            ->default(fn (): ?int => TicketPriority::active()->orderBy('level')->value('id')),
                         Select::make('status_id')
                             ->label('Status')
                             ->relationship('status', 'name')
                             ->searchable()
                             ->preload()
                             ->required()
-                            ->default(fn (): ?int => TicketStatus::query()->where('is_default', true)->value('id')),
+                            ->default(fn (): ?int => TicketStatus::default()->value('id')),
                         Select::make('assigned_to')
                             ->label('Assigned to')
                             ->relationship('assignee', 'name')
@@ -229,10 +238,7 @@ class TicketResource extends Resource
                 SelectFilter::make('assigned_to')
                     ->label('Assigned to')
                     ->attribute('assigned_to')
-                    ->options(fn (): array => User::query()
-                        ->whereHas('roles', fn ($query) => $query->where('name', 'admin'))
-                        ->pluck('name', 'id')
-                        ->all()),
+                    ->options(fn (): array => static::adminUserOptions()),
                 TrashedFilter::make(),
             ])
             ->recordActions([
@@ -243,10 +249,7 @@ class TicketResource extends Resource
                     ->schema([
                         Select::make('status_id')
                             ->label('Status')
-                            ->options(fn (): array => TicketStatus::query()
-                                ->where('is_active', true)
-                                ->pluck('name', 'id')
-                                ->all())
+                            ->options(fn (): array => TicketStatus::active()->pluck('name', 'id')->all())
                             ->required(),
                     ])
                     ->fillForm(fn (Ticket $record): array => ['status_id' => $record->status_id])
@@ -266,10 +269,7 @@ class TicketResource extends Resource
                     ->schema([
                         Select::make('assigned_to')
                             ->label('Assigned to')
-                            ->options(fn (): array => User::query()
-                                ->whereHas('roles', fn ($query) => $query->where('name', 'admin'))
-                                ->pluck('name', 'id')
-                                ->all())
+                            ->options(fn (): array => static::adminUserOptions())
                             ->placeholder('Unassigned')
                             ->nullable(),
                     ])
@@ -334,7 +334,7 @@ class TicketResource extends Resource
             ])
             ->defaultSort('created_at', 'desc')
             ->searchable()
-            ->poll('60s');
+            ->poll('15s');
     }
 
     public static function getRelations(): array
