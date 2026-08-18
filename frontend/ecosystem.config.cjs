@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'frontend',
       script: 'server.mjs',
-      cwd: '/app',
+      cwd: __dirname,
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
