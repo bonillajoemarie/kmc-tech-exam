@@ -72,7 +72,7 @@ Missing PHP extensions will be reported by `composer check-platform-reqs` inside
 
 ### Installing FrankenPHP (Option A only)
 
-Octane needs the `frankenphp` binary on your `PATH`. The binary **cannot** be placed at `backend/frankenphp/` — that path is a **directory** holding the committed Caddyfile, and Octane would try to overwrite it with the downloaded binary. Instead, download the release for *your* OS from https://github.com/php/frankenphp/releases/latest and put it on your `PATH` (e.g. `/usr/local/bin` on Linux/macOS), then verify with `frankenphp version`.
+Octane needs the `frankenphp` binary on your `PATH`. The binary **cannot** be placed at `backend/frankenphp/` — that path is a **directory** holding the committed Caddyfile, and Octane would try to overwrite it with the downloaded binary. Instead, download the release for *your* OS from https://github.com/php/frankenphp/releases/latest and put it in a directory that is already on your `PATH`, then verify with `frankenphp version`.
 
 | OS | Asset to download |
 |---|---|
@@ -90,6 +90,8 @@ If your OS is not listed here, or you would simply rather install nothing on you
 Only **Docker Engine + Docker Compose v2** (any OS). The backend image builds PHP 8.5 + FrankenPHP (static musl) + Octane + Reverb; the frontend image builds with Node 22; MySQL 8.4 and Redis 7 run as containers. Nothing else is installed on the host. See [Docker deployment](#docker-deployment) and Option B in Quickstart.
 
 ## Quickstart
+
+> All shell commands below are POSIX shell (macOS, Linux, WSL2). On native Windows, or if you do not want to install the local toolchain at all, jump straight to [Option B — Docker-only](#option-b--docker-only-no-local-toolchain).
 
 ### Backend
 

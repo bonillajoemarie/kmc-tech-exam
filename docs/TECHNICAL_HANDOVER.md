@@ -5,7 +5,7 @@ Operational notes for whoever runs this app next. For architecture, features, qu
 ## Running locally
 
 1. Start MySQL (db `kmc_tickets`, `root`, empty password) and Redis.
-2. **Backend:** `cd backend && composer install && cp .env.example .env && php artisan key:generate && php artisan migrate:fresh --seed && php artisan passport:keys --force && php artisan passport:client --personal --name="Support Desk"`, then `php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8000`. The FrankenPHP binary must be on your `PATH` (`which frankenphp`) — Octane looks it up there because `backend/frankenphp/` is a directory (the Caddyfile), not a binary path. See the README's "Installing FrankenPHP" for your OS's asset, or skip it entirely and run **Docker** (Option B) which builds FrankenPHP into the container.
+2. **Backend:** `cd backend && composer install && cp .env.example .env && php artisan key:generate && php artisan migrate:fresh --seed && php artisan passport:keys --force && php artisan passport:client --personal --name="Support Desk"`, then `php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8000`. The FrankenPHP binary must be resolvable on your `PATH` — Octane looks it up there because `backend/frankenphp/` is a directory (the Caddyfile), not a binary path. See the README's "Installing FrankenPHP" for your OS's asset, or skip it entirely and run **Docker** (Option B) which builds FrankenPHP into the container. Commands are POSIX shell (macOS/Linux/WSL2); on native Windows use the Docker path.
 3. **Frontend:** `cd frontend && npm ci && cp .env.example .env && npm run dev` → http://localhost:5173 (Vite proxies `/api`, `/broadcasting` → :8000 and `/apps` → Reverb :8080).
 4. Reverb runs **co-located with the backend** — inside Docker it is a second supervisord process in the *same* container (Octane :8000 + Reverb :8080). Locally, start it in a second terminal with `php artisan reverb:start --host=0.0.0.0 --port=8080`. Do not set `BROADCAST_CONNECTION=log` (see Gotchas).
 5. Admin panel: http://localhost:8000/admin → `admin@example.com` / `password`.
@@ -80,7 +80,7 @@ All four are consumed by `src/lib/echo.ts`. Vite only exposes `VITE_`-prefixed v
 
 ## AI tooling used in this build
 
-The whole app (plan Tasks 1–4 + Revision 1) was built interactively with the **opencode CLI**, mostly by delegating well-scoped work to subagents. The models actually used (audited from opencode's session database, `~/.local/share/opencode/opencode.db`):
+The whole app (plan Tasks 1–4 + Revision 1) was built interactively with the **opencode CLI**, mostly by delegating well-scoped work to subagents. The models actually used (audited from the builder's local opencode session database):
 
 | Model | Provider | How it was used |
 |---|---|---|
